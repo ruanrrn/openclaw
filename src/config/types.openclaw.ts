@@ -128,6 +128,15 @@ export type LegacyConfigIssue = {
   message: string;
 };
 
+export type ConfigOperatorPolicySnapshot = {
+  path: string;
+  exists: boolean;
+  valid: boolean;
+  lockedPaths: string[];
+  issues: ConfigValidationIssue[];
+  warnings: ConfigValidationIssue[];
+};
+
 export type ConfigFileSnapshot = {
   path: string;
   exists: boolean;
@@ -145,4 +154,5 @@ export type ConfigFileSnapshot = {
   issues: ConfigValidationIssue[];
   warnings: ConfigValidationIssue[];
   legacyIssues: LegacyConfigIssue[];
+  policy?: ConfigOperatorPolicySnapshot;
 };
