@@ -102,6 +102,7 @@ What has been implemented so far:
 - plugin provider projection from registry entries into runtime provider objects now routes through `src/extension-host/provider-runtime.ts`
 - plugin provider discovery filtering, order grouping, and result normalization now route through `src/extension-host/provider-discovery.ts`
 - provider matching, auth-method selection, config-patch merging, and default-model application now route through `src/extension-host/provider-auth.ts`
+- embedding-provider auto-selection, provider creation, local-setup guidance, and primary and fallback routing now route through `src/extension-host/embedding-runtime-registry.ts` while `src/memory/embeddings.ts` remains the compatibility facade
 - media-provider normalization, built-in registry construction, override merging, and runtime lookup now route through `src/extension-host/media-runtime-registry.ts` while `src/media-understanding/providers/index.ts` remains the compatibility facade
 - TTS provider metadata, provider ordering, API-key resolution, configuration checks, and telephony support now route through `src/extension-host/tts-runtime-registry.ts` while `src/tts/tts.ts` remains the synthesis execution owner
 - provider onboarding option building, model-picker entry building, and provider-method choice resolution now route through `src/extension-host/provider-wizard.ts`
@@ -241,6 +242,7 @@ Committed implementation slices so far:
 - `17b7f6a3e4` `Context: extract extension host engine runtime`
 - `871086537b` `Plugins: extract slot arbitration`
 - `b7868d06ba` `ACP: extract runtime backend registry`
+- `df0cb8193c` `Memory: extract embedding runtime registry`
 - `e592f60fa7` `Media: extract runtime provider registry`
 - `36711383f6` `TTS: extract runtime registry`
 - `89414ed857` `Docs: track extension host migration internally`
@@ -252,7 +254,7 @@ What is still missing for these phases:
 - broader lifecycle ownership beyond the loader state machine, service-lifecycle boundary, CLI-lifecycle boundary, session-owned activation state, and explicit discovery-policy, activation-policy, and finalization-policy outcomes, remaining policy gate ownership, and broad host-owned registries described for Phase 2
 - minimal SDK compatibility work beyond preserving current behavior indirectly through existing loading
 - host-owned conversation binding, interaction routing, ingress claim, and generic interactive control surfaces
-- the embedding runtime registry, plus broader media- and TTS-runtime execution and fallback ownership
+- broader embedding-, media-, and TTS-runtime execution and fallback ownership
 - explicit support for extension-backed search, with a generic split between agent-visible tool publication and optional runtime-internal search backends
 - any pilot migration, event pipeline, canonical catalog, or arbitration implementation
 
@@ -262,7 +264,7 @@ Recent plan refinements:
 - it now explicitly treats interactive callback routing, namespace ownership, dedupe, and fallback behavior as first-class migration surfaces
 - it now explicitly treats inbound claim as a canonical ingress-stage concern rather than a permanent plugin-era hook shape
 - it now explicitly treats Telegram and Discord as the first validated rollout targets for interactive control surfaces while keeping the underlying contracts generic, host-owned, and kernel-agnostic
-- it now explicitly treats embeddings as a remaining host-owned subsystem runtime target and media understanding plus TTS as in-progress host-owned subsystem runtimes, all with capability routing, typed request envelopes, provider-id normalization, and fallback policy
+- it now explicitly treats embeddings, media understanding, and TTS as in-progress host-owned subsystem runtimes, with embedding selection and fallback now extracted and the remaining execution ownership still pending, all with capability routing, typed request envelopes, provider-id normalization, and fallback policy
 - it now explicitly rejects widening the legacy `registerProvider(...)` or `ProviderPlugin` surface into a universal runtime API while retaining capability routing, typed request envelopes, provider-id normalization, and fallback behavior where those are part of the target model
 - it now explicitly treats extension-backed search as either a canonical tool contribution or a host-owned runtime backend depending on whether the search surface is agent-visible
 

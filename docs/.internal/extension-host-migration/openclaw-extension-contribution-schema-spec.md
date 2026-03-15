@@ -43,6 +43,7 @@ What has been implemented:
 - context-engine registration and runtime resolution now route through `src/extension-host/context-engine-runtime.ts` while `src/context-engine/registry.ts` remains the compatibility facade
 - exclusive-slot selection and default-slot resolution now route through `src/extension-host/slot-arbitration.ts` while `src/plugins/slots.ts` remains the compatibility facade
 - ACP backend registration and runtime resolution now route through `src/extension-host/acp-runtime-backend-registry.ts` while `src/acp/runtime/registry.ts` remains the compatibility facade
+- embedding-provider auto-selection, provider creation, local-setup guidance, and primary and fallback routing now route through `src/extension-host/embedding-runtime-registry.ts` while `src/memory/embeddings.ts` remains the compatibility facade
 - media-provider normalization, built-in registry construction, override merging, and runtime lookup now route through `src/extension-host/media-runtime-registry.ts` while `src/media-understanding/providers/index.ts` remains the compatibility facade
 - TTS provider metadata, provider ordering, API-key resolution, configuration checks, and telephony support now route through `src/extension-host/tts-runtime-registry.ts` while `src/tts/tts.ts` remains the synthesis execution owner
 - legacy internal-hook bridging and typed prompt-injection compatibility policy now route through `src/extension-host/hook-compat.ts`

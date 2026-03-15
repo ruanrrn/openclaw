@@ -39,6 +39,7 @@ Relevant prerequisite work that has landed:
 - context-engine registration and runtime resolution now have a host-owned helper boundary in `src/extension-host/context-engine-runtime.ts`
 - exclusive-slot selection and default-slot resolution now have a host-owned helper boundary in `src/extension-host/slot-arbitration.ts`
 - ACP backend registration and runtime resolution now have a host-owned helper boundary in `src/extension-host/acp-runtime-backend-registry.ts`
+- embedding-provider auto-selection, provider creation, local-setup guidance, and primary and fallback routing now have a host-owned helper boundary in `src/extension-host/embedding-runtime-registry.ts`
 - media-provider normalization, built-in registry construction, override merging, and runtime lookup now have a host-owned helper boundary in `src/extension-host/media-runtime-registry.ts`
 - TTS provider metadata, provider ordering, API-key resolution, configuration checks, and telephony support now have a host-owned helper boundary in `src/extension-host/tts-runtime-registry.ts`
 - loader cache key construction and registry cache control now have a host-owned helper boundary
