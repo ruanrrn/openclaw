@@ -137,6 +137,10 @@ function absolutizeBundleMcpServer(params: {
 }): BundleMcpServerConfig {
   const next: BundleMcpServerConfig = { ...params.server };
 
+  if (typeof next.cwd !== "string" && typeof next.workingDirectory !== "string") {
+    next.cwd = params.baseDir;
+  }
+
   const command = next.command;
   if (typeof command === "string" && isExplicitRelativePath(command)) {
     next.command = path.resolve(params.baseDir, command);

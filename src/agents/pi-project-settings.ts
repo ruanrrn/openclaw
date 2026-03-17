@@ -5,6 +5,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import { applyMergePatch } from "../config/merge-patch.js";
 import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { loadEnabledBundleMcpConfig } from "../plugins/bundle-mcp.js";
 import { normalizePluginsConfig, resolveEffectiveEnableState } from "../plugins/config-state.js";
 import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { isRecord } from "../utils.js";
@@ -105,6 +106,19 @@ export function loadEnabledBundlePiSettingsSnapshot(params: {
       }
       snapshot = applyMergePatch(snapshot, bundleSettings) as PiSettingsSnapshot;
     }
+  }
+
+  const bundleMcp = loadEnabledBundleMcpConfig({
+    workspaceDir,
+    cfg: params.cfg,
+  });
+  for (const diagnostic of bundleMcp.diagnostics) {
+    log.warn(`bundle MCP skipped for ${diagnostic.pluginId}: ${diagnostic.message}`);
+  }
+  if (Object.keys(bundleMcp.config.mcpServers).length > 0) {
+    snapshot = applyMergePatch(snapshot, {
+      mcpServers: bundleMcp.config.mcpServers,
+    }) as PiSettingsSnapshot;
   }
 
   return snapshot;
