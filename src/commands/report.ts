@@ -137,8 +137,15 @@ export type ReportPayload = {
 const PUBLIC_REPO = "openclaw/openclaw";
 const REPORT_GENERATED_NOTE = "_Generated via `openclaw report`._";
 
+function normalizeEscapedMultilineText(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return value.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
+}
+
 function sanitizeWhitespace(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
+  const trimmed = normalizeEscapedMultilineText(value)?.trim();
   return trimmed ? trimmed : undefined;
 }
 
@@ -165,8 +172,9 @@ export function sanitizeReportText(value: string | undefined): {
   if (!value) {
     return { text: "", redactionsApplied: [] };
   }
-  const redactions = detectRedactions(value);
-  let text = redactSecrets(value);
+  const normalized = normalizeEscapedMultilineText(value) ?? "";
+  const redactions = detectRedactions(normalized);
+  let text = redactSecrets(normalized);
   text = text.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email-redacted]");
   text = text.replace(/\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?){2}\d{4}\b/g, "[phone-redacted]");
   text = text.replace(/\/Users\/[^/\s]+/g, "/Users/user");

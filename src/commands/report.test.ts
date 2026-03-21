@@ -202,6 +202,22 @@ describe("reportCommand", () => {
     expect(payload.submissionEligible).toBe(false);
   });
 
+  it("renders literal escaped newline sequences as real line breaks in report sections", async () => {
+    const payload = await buildReportPayload({
+      kind: "bug",
+      options: {
+        summary: "Gateway timeout",
+        repro: "1. Start gateway\\n2. Send request\\n3. Observe failure",
+        expected: "Model responds",
+        actual: "Timeout",
+        impact: "Blocks requests",
+      },
+    });
+
+    expect(payload.body).toContain("1. Start gateway\n2. Send request\n3. Observe failure");
+    expect(payload.body).not.toContain("\\n2. Send request");
+  });
+
   it("writes markdown output that matches the generated body", async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-report-test-"));
     const outputPath = path.join(tmpDir, "bug.md");
@@ -444,6 +460,25 @@ describe("reportCommand", () => {
     );
     expect(payload.submission.created).toBe(true);
     expect(payload.submission.url).toBe("https://github.com/openclaw/openclaw/issues/999");
+  });
+
+  it("prints the created issue url in human output after successful submission", async () => {
+    await reportCommand({
+      kind: "bug",
+      options: {
+        summary: "Gateway timeout",
+        repro: "1. Start gateway",
+        expected: "Model responds",
+        actual: "Timeout",
+        impact: "Blocks requests",
+        submit: true,
+        yes: true,
+        nonInteractive: true,
+      },
+      runtime,
+    });
+
+    expect(runtime.log).toHaveBeenCalledWith("Created: https://github.com/openclaw/openclaw/issues/999");
   });
 
   it("keeps draft generation working when config and secret resolution degrade", async () => {

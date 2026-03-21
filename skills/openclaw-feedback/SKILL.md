@@ -46,6 +46,7 @@ Use this skill only for `openclaw/openclaw`.
 - Show the full sanitized draft before asking to submit.
 - Ask permission in plain English before adding `--submit`.
 - Only after approval, use `--submit` for public bug or feature issues.
+- If submission succeeds, include the created GitHub issue URL in the final reply to the user.
 
 ## Do Not
 
@@ -99,7 +100,8 @@ Use this skill only for `openclaw/openclaw`.
 10. After showing the draft, ask in plain English: `If this draft looks right, I can submit it to GitHub now.`
 11. Do not mention CLI flags like `--submit` in the user-facing approval question.
 12. Only if the user clearly approves, rerun or continue with `--submit` for public bug or feature issues.
-13. For security, keep the report private and route the user to `security@openclaw.ai`.
+13. If the issue is created successfully, include the created GitHub URL in the final reply.
+14. For security, keep the report private and route the user to `security@openclaw.ai`.
 
 ## Common Commands
 
@@ -130,6 +132,8 @@ Use `--additional-information` for details that do not fit neatly into `--repro`
 - operator hypotheses worth preserving
 
 Prefer deriving these from the conversation when they are already clear instead of asking the user to restate them.
+
+When passing multiline text into the CLI as a single quoted argument, encode line breaks as literal `\n` so `openclaw report` can render them back as real line breaks in the final issue body.
 
 ## Private Security Reports
 
@@ -179,7 +183,7 @@ I need a few bug-report details: what steps reproduce it, what you expected, wha
 If those fields are not already clear from the diagnosis session, ask for them. Otherwise infer them and run:
 
 ```bash
-openclaw report bug --summary "Gateway times out behind mitmproxy" --repro "..." --expected "..." --actual "..." --impact "..." --probe gateway
+openclaw report bug --summary "Gateway times out behind mitmproxy" --repro "1. Start gateway\n2. Send request\n3. Observe timeout" --expected "..." --actual "..." --impact "..." --probe gateway
 ```
 
 Then show the draft itself, not internal report metadata. Only add `--submit` after explicit approval.
@@ -189,6 +193,8 @@ After showing the draft, ask:
 ```text
 If this draft looks right, I can submit it to GitHub now.
 ```
+
+If submission succeeds, include the created issue URL in the final reply.
 
 ### Example: regression bug with loose extra context
 
@@ -206,7 +212,7 @@ I need the repro steps, expected behavior, actual behavior, and impact. I can al
 If the missing facts are not already clear from the conversation or diagnosis session, ask for them. Otherwise infer them and run:
 
 ```bash
-openclaw report bug --summary "Regression after update" --repro "..." --expected "..." --actual "..." --impact "..." --previous-version "2026.3.14" --additional-information "Worked last week; now every call times out behind the same proxy setup." --probe model
+openclaw report bug --summary "Regression after update" --repro "1. Start gateway\n2. Send request\n3. Observe failure" --expected "..." --actual "..." --impact "..." --previous-version "2026.3.14" --additional-information "Worked last week; now every call times out behind the same proxy setup." --probe model
 ```
 
 Then show the draft and ask:
@@ -214,6 +220,8 @@ Then show the draft and ask:
 ```text
 If this draft looks right, I can submit it to GitHub now.
 ```
+
+If submission succeeds, include the created issue URL in the final reply.
 
 ### Example: feature request
 
@@ -230,6 +238,8 @@ Then show the draft and ask:
 ```text
 If this draft looks right, I can submit it to GitHub now.
 ```
+
+If submission succeeds, include the created issue URL in the final reply.
 
 ### Example: private security report
 
