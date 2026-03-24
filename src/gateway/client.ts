@@ -634,6 +634,13 @@ export class GatewayClient {
           this.deviceTokenRetryBudgetUsed = true;
           this.backoffMs = Math.min(this.backoffMs, 250);
         }
+        const isTransientPreHelloClose =
+          this.pendingConnectErrorDetailCode == null &&
+          err instanceof Error &&
+          /^gateway closed \(1000\):\s*$/.test(err.message);
+        if (isTransientPreHelloClose) {
+          return;
+        }
         const startupRetryAfterMs = resolveGatewayStartupRetryAfterMs(err);
         if (startupRetryAfterMs !== null) {
           this.pendingStartupReconnectDelayMs = startupRetryAfterMs;
