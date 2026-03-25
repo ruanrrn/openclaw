@@ -921,7 +921,6 @@ describe("callGateway error details", () => {
     expect(healthRequests).toBe(1);
   });
 
-
   it("includes connection details on timeout", async () => {
     startMode = "silent";
     setLocalLoopbackGatewayConfig();
