@@ -45,8 +45,24 @@ function resolveProfilePaths(
   env: NodeJS.ProcessEnv,
   homedir: () => string,
 ): ReturnType<typeof resolveSelectedProfileSync> {
-  return resolveSelectedProfileSync(env, homedir);
+  const resolvedHome = resolveRequiredHomeDir(env, homedir);
+  const cacheKey = JSON.stringify({
+    home: resolvedHome,
+    profile: env.OPENCLAW_PROFILE?.trim() ?? "",
+    stateDir: env.OPENCLAW_STATE_DIR?.trim() ?? "",
+    configPath: env.OPENCLAW_CONFIG_PATH?.trim() ?? "",
+    gatewayPort: env.OPENCLAW_GATEWAY_PORT?.trim() ?? "",
+  });
+  const cached = PROFILE_PATH_CACHE.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const resolved = resolveSelectedProfileSync(env, () => resolvedHome);
+  PROFILE_PATH_CACHE.set(cacheKey, resolved);
+  return resolved;
 }
+
+const PROFILE_PATH_CACHE = new Map<string, ReturnType<typeof resolveSelectedProfileSync>>();
 
 export function resolveLegacyStateDir(homedir: () => string = resolveDefaultHomeDir): string {
   return legacyStateDirs(homedir)[0] ?? newStateDir(homedir);

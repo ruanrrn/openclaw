@@ -17,15 +17,6 @@ export async function setupWizardCommand(
   opts: OnboardOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
-  const selectedProfile = process.env.OPENCLAW_PROFILE?.trim();
-  const autoProfilePaths = process.env.OPENCLAW_PROFILE_AUTO_PATHS === "1";
-  const hasExplicitPathOverride =
-    Boolean(process.env.OPENCLAW_STATE_DIR?.trim()) ||
-    Boolean(process.env.OPENCLAW_CONFIG_PATH?.trim());
-  if (selectedProfile && (!hasExplicitPathOverride || autoProfilePaths)) {
-    await ensureManagedProfile(selectedProfile);
-  }
-
   assertSupportedRuntime(runtime);
   const originalAuthChoice = opts.authChoice;
   const normalizedAuthChoice = normalizeLegacyOnboardAuthChoice(originalAuthChoice);
@@ -76,6 +67,15 @@ export async function setupWizardCommand(
     );
     runtime.exit(1);
     return;
+  }
+
+  const selectedProfile = process.env.OPENCLAW_PROFILE?.trim();
+  const autoProfilePaths = process.env.OPENCLAW_PROFILE_AUTO_PATHS === "1";
+  const hasExplicitPathOverride =
+    Boolean(process.env.OPENCLAW_STATE_DIR?.trim()) ||
+    Boolean(process.env.OPENCLAW_CONFIG_PATH?.trim());
+  if (selectedProfile && (!hasExplicitPathOverride || autoProfilePaths)) {
+    await ensureManagedProfile(selectedProfile);
   }
 
   if (normalizedOpts.reset) {

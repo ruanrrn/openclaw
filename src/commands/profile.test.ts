@@ -221,6 +221,27 @@ describe("profile commands", () => {
     expect(managed?.warnings.join("\n")).toContain("Absolute profile paths are not allowed");
   });
 
+  it("treats adopted legacy manifests that escape the adopted root as invalid", async () => {
+    const root = await fs.mkdtemp(path.join(process.cwd(), ".tmp-profile-adopted-escape-"));
+    process.env.OPENCLAW_HOME = root;
+    const runtime = createNonExitingRuntime();
+    const legacyRoot = path.join(root, ".openclaw-legacy");
+    await fs.mkdir(legacyRoot, { recursive: true });
+    await fs.writeFile(path.join(legacyRoot, "openclaw.json"), "{}", "utf8");
+
+    await profileImportCommand(runtime, "legacy", {});
+
+    const manifestPath = path.join(root, ".openclaw", "profiles", "legacy", "profile.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as {
+      roots: { config: string; state: string; workspace: string };
+    };
+    manifest.roots.state = "/tmp/escape-state";
+    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+
+    const managed = await readManagedProfile("legacy", process.env, () => root);
+    expect(managed?.warnings.join("\n")).toContain("escapes adopted legacy root");
+  });
+
   it("refuses to create a managed profile when a same-id legacy profile exists", async () => {
     const root = await fs.mkdtemp(path.join(process.cwd(), ".tmp-profile-shadow-"));
     process.env.OPENCLAW_HOME = root;
@@ -259,6 +280,19 @@ describe("profile commands", () => {
     const dev = await readManagedProfile("dev", process.env, () => root);
     expect(dev?.basePort).toBeDefined();
     expect(dev?.basePort).not.toBe(work?.basePort);
+  });
+
+  it("rejects invalid profile ids instead of coercing them to default", async () => {
+    const root = await fs.mkdtemp(path.join(process.cwd(), ".tmp-profile-invalid-id-"));
+    process.env.OPENCLAW_HOME = root;
+    const runtime = createNonExitingRuntime();
+
+    await expect(profileCreateCommand(runtime, "bad profile", {})).rejects.toThrow(
+      /invalid profile id/i,
+    );
+    await expect(profileDeleteCommand(runtime, "bad profile", { yes: true })).rejects.toThrow(
+      /invalid profile id/i,
+    );
   });
 
   it("refuses to delete the active profile without force", async () => {

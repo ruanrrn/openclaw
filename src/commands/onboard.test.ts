@@ -46,21 +46,35 @@ describe("setupWizardCommand", () => {
   });
 
   it("fails fast for invalid secret-input-mode before setup starts", async () => {
-    const runtime = makeRuntime();
+    await withTempHome(async (home) => {
+      const runtime = makeRuntime();
+      process.env.OPENCLAW_HOME = home;
+      delete process.env.OPENCLAW_STATE_DIR;
+      delete process.env.OPENCLAW_CONFIG_PATH;
+      delete process.env.OPENCLAW_GATEWAY_PORT;
+      applyCliProfileEnv({
+        profile: "invalid-onboard",
+        env: process.env as Record<string, string | undefined>,
+        homedir: () => home,
+      });
 
-    await setupWizardCommand(
-      {
-        secretInputMode: "invalid" as never, // pragma: allowlist secret
-      },
-      runtime,
-    );
+      await setupWizardCommand(
+        {
+          secretInputMode: "invalid" as never, // pragma: allowlist secret
+        },
+        runtime,
+      );
 
-    expect(runtime.error).toHaveBeenCalledWith(
-      'Invalid --secret-input-mode. Use "plaintext" or "ref".',
-    );
-    expect(runtime.exit).toHaveBeenCalledWith(1);
-    expect(mocks.runInteractiveSetup).not.toHaveBeenCalled();
-    expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
+      expect(runtime.error).toHaveBeenCalledWith(
+        'Invalid --secret-input-mode. Use "plaintext" or "ref".',
+      );
+      expect(runtime.exit).toHaveBeenCalledWith(1);
+      expect(mocks.runInteractiveSetup).not.toHaveBeenCalled();
+      expect(mocks.runNonInteractiveSetup).not.toHaveBeenCalled();
+
+      const profile = await readManagedProfile("invalid-onboard", process.env, () => home);
+      expect(profile).toBeNull();
+    });
   });
 
   it("logs ASCII-safe Windows guidance before setup", async () => {

@@ -95,6 +95,21 @@ export function normalizeProfileId(raw?: string | null): string {
   return normalizeProfileName(raw) ?? DEFAULT_PROFILE_ID;
 }
 
+export function requireValidProfileId(raw?: string | null): string {
+  const profile = raw?.trim();
+  if (!profile) {
+    throw new Error("Profile id is required");
+  }
+  if (profile.toLowerCase() === DEFAULT_PROFILE_ID) {
+    return DEFAULT_PROFILE_ID;
+  }
+  const normalized = normalizeProfileName(profile);
+  if (!normalized) {
+    throw new Error(`Invalid profile id: ${profile}`);
+  }
+  return normalized;
+}
+
 function resolveProfileComponentPath(
   profileRoot: string,
   value: string,
@@ -171,6 +186,21 @@ function isSafeLegacyRoot(candidate: string, home: string): boolean {
   }
 }
 
+function validateAdoptedAbsolutePath(
+  adoptedRoot: string,
+  resolvedPath: string,
+  label: string,
+): string {
+  const adoptedReal = fs.realpathSync(adoptedRoot);
+  const targetReal = fs.existsSync(resolvedPath)
+    ? fs.realpathSync(resolvedPath)
+    : path.resolve(resolvedPath);
+  if (!isPathWithinRoot(adoptedReal, targetReal)) {
+    throw new Error(`${label} escapes adopted legacy root: ${resolvedPath}`);
+  }
+  return resolvedPath;
+}
+
 function validateProfileSpec(raw: unknown): ProfileSpec | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return null;
@@ -242,17 +272,33 @@ function buildResolvedManagedProfile(
   configuredGatewayPort?: number,
 ): ResolvedProfile {
   const allowAbsolute = Boolean(spec.adoptedFromLegacy);
+  const adoptedRoot = spec.adoptedFromLegacy ? path.resolve(spec.adoptedFromLegacy) : null;
+  const configPath = resolveProfileComponentPath(profileRoot, spec.roots.config, { allowAbsolute });
+  const stateDir = resolveProfileComponentPath(profileRoot, spec.roots.state, { allowAbsolute });
+  const workspaceDir = resolveProfileComponentPath(profileRoot, spec.roots.workspace, {
+    allowAbsolute,
+  });
+  const validatedConfigPath =
+    adoptedRoot && path.isAbsolute(spec.roots.config)
+      ? validateAdoptedAbsolutePath(adoptedRoot, configPath, "config path")
+      : configPath;
+  const validatedStateDir =
+    adoptedRoot && path.isAbsolute(spec.roots.state)
+      ? validateAdoptedAbsolutePath(adoptedRoot, stateDir, "state dir")
+      : stateDir;
+  const validatedWorkspaceDir =
+    adoptedRoot && path.isAbsolute(spec.roots.workspace)
+      ? validateAdoptedAbsolutePath(adoptedRoot, workspaceDir, "workspace dir")
+      : workspaceDir;
   return buildResolvedProfile({
     id: spec.id,
     kind: "managed",
     mode: spec.adoptedFromLegacy ? "adopted-legacy" : "managed-native",
     profileRoot,
     manifestPath: path.join(profileRoot, "profile.json"),
-    configPath: resolveProfileComponentPath(profileRoot, spec.roots.config, { allowAbsolute }),
-    stateDir: resolveProfileComponentPath(profileRoot, spec.roots.state, { allowAbsolute }),
-    workspaceDir: resolveProfileComponentPath(profileRoot, spec.roots.workspace, {
-      allowAbsolute,
-    }),
+    configPath: validatedConfigPath,
+    stateDir: validatedStateDir,
+    workspaceDir: validatedWorkspaceDir,
     basePort: spec.network.basePort,
     configuredGatewayPort,
     exists: true,

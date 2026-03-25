@@ -9,8 +9,8 @@ import {
   createProfileSpec,
   importLegacyProfile,
   listProfiles,
-  normalizeProfileId,
   readManagedProfile,
+  requireValidProfileId,
   resolveManagedProfileRoot,
   resolveProfileSelection,
   suggestProfileBasePort,
@@ -48,6 +48,10 @@ const PROFILE_FILE_EXCLUDES = new Set([
 ]);
 
 type MutableRecord = Record<string, unknown>;
+
+function resolveCommandProfileId(raw: string): string {
+  return requireValidProfileId(raw);
+}
 
 function ensureProfileInsideRoot(profile: ResolvedProfile, target: string): boolean {
   const relative = path.relative(profile.profileRoot, target);
@@ -168,7 +172,7 @@ async function copyProfileStateTree(params: {
 }
 
 async function chooseBasePort(profileId: string, from?: string): Promise<number> {
-  const id = normalizeProfileId(profileId);
+  const id = resolveCommandProfileId(profileId);
   if (!from) {
     const preferredPort = id === "default" ? 18789 : id === "dev" ? 19001 : undefined;
     if (preferredPort) {
@@ -328,7 +332,7 @@ export async function profileGetCommand(
   profileId: string,
   opts: { json?: boolean },
 ): Promise<void> {
-  const profile = await resolveProfileSelection(profileId);
+  const profile = await resolveProfileSelection(resolveCommandProfileId(profileId));
   writeProfileOutput(runtime, formatProfileSummary(profile), Boolean(opts.json));
 }
 
@@ -337,7 +341,7 @@ export async function profilePathsCommand(
   profileId: string,
   opts: { json?: boolean },
 ): Promise<void> {
-  const profile = await resolveProfileSelection(profileId);
+  const profile = await resolveProfileSelection(resolveCommandProfileId(profileId));
   writeProfileOutput(
     runtime,
     {
@@ -357,7 +361,7 @@ export async function profileCreateCommand(
   profileId: string,
   opts: { json?: boolean },
 ): Promise<void> {
-  const id = normalizeProfileId(profileId);
+  const id = resolveCommandProfileId(profileId);
   const existingManaged = await readManagedProfile(id);
   if (existingManaged) {
     throw new Error(`Managed profile already exists: ${id}`);
@@ -392,7 +396,7 @@ export async function profileCloneCommand(
   profileId: string,
   opts: { json?: boolean },
 ): Promise<void> {
-  const id = normalizeProfileId(profileId);
+  const id = resolveCommandProfileId(profileId);
   const existingManaged = await readManagedProfile(id);
   if (existingManaged) {
     throw new Error(`Managed profile already exists: ${id}`);
@@ -404,9 +408,9 @@ export async function profileCloneCommand(
     );
   }
 
-  const source = await resolveProfileSelection(sourceId);
+  const source = await resolveProfileSelection(resolveCommandProfileId(sourceId));
   if (!source.exists) {
-    throw new Error(`Source profile not found: ${normalizeProfileId(sourceId)}`);
+    throw new Error(`Source profile not found: ${resolveCommandProfileId(sourceId)}`);
   }
 
   const basePort = await chooseBasePort(id, source.id);
@@ -441,7 +445,7 @@ export async function profileImportCommand(
   profileId: string,
   opts: { json?: boolean },
 ): Promise<void> {
-  const profile = await importLegacyProfile(profileId);
+  const profile = await importLegacyProfile(resolveCommandProfileId(profileId));
   writeProfileOutput(runtime, formatProfileSummary(profile), Boolean(opts.json));
 }
 
@@ -450,7 +454,7 @@ export async function profileDoctorCommand(
   profileId: string,
   opts: { json?: boolean },
 ): Promise<void> {
-  const profile = await resolveProfileSelection(profileId);
+  const profile = await resolveProfileSelection(resolveCommandProfileId(profileId));
   const report = await buildDoctorReport(profile);
   writeProfileOutput(runtime, report, Boolean(opts.json));
 }
@@ -460,7 +464,7 @@ export async function profileDeleteCommand(
   profileId: string,
   opts: { yes?: boolean; force?: boolean; json?: boolean },
 ): Promise<void> {
-  const id = normalizeProfileId(profileId);
+  const id = resolveCommandProfileId(profileId);
   const profile = await readManagedProfile(id);
   if (!profile) {
     throw new Error(`Managed profile not found: ${id}`);
