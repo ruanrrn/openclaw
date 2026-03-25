@@ -318,7 +318,10 @@ export class GatewayBrowserClient {
       const connectError = this.pendingConnectError;
       this.pendingConnectError = undefined;
       this.ws = null;
-      this.flushPending(new Error(`gateway closed (${ev.code}): ${reason}`));
+      const flushError = connectError
+        ? new GatewayRequestError(connectError)
+        : new Error(`gateway closed (${ev.code}): ${reason}`);
+      this.flushPending(flushError);
       this.opts.onClose?.({ code: ev.code, reason, error: connectError });
       const connectErrorCode = resolveGatewayErrorDetailCode(connectError);
       if (
