@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import { callGateway } from "../gateway/call.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { parsePositiveIntOrUndefined } from "./program/helpers.js";
 import { withProgress } from "./progress.js";
 
 export type GatewayRpcOpts = {
@@ -17,6 +18,16 @@ export function addGatewayClientOptions(cmd: Command) {
     .option("--token <token>", "Gateway token (if required)")
     .option("--timeout <ms>", "Timeout in ms", "30000")
     .option("--expect-final", "Wait for final response (agent)", false);
+}
+
+const DEFAULT_GATEWAY_RPC_TIMEOUT_MS = 30_000;
+
+function resolveGatewayRpcTimeoutMs(timeout: unknown): number {
+  const parsed = parsePositiveIntOrUndefined(timeout);
+  if (timeout !== undefined && timeout !== null && timeout !== "" && parsed === undefined) {
+    throw new Error("--timeout must be a positive integer (milliseconds)");
+  }
+  return parsed ?? DEFAULT_GATEWAY_RPC_TIMEOUT_MS;
 }
 
 export async function callGatewayFromCli(
@@ -39,7 +50,7 @@ export async function callGatewayFromCli(
         method,
         params,
         expectFinal: extra?.expectFinal ?? Boolean(opts.expectFinal),
-        timeoutMs: Number(opts.timeout ?? 10_000),
+        timeoutMs: resolveGatewayRpcTimeoutMs(opts.timeout),
         clientName: GATEWAY_CLIENT_NAMES.CLI,
         mode: GATEWAY_CLIENT_MODES.CLI,
       }),
