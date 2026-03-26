@@ -27,7 +27,8 @@ function listJsFilesRecursively(rootDir) {
 }
 
 export function patchMSTeamsHttpPluginApiRoute(params = {}) {
-  const distDir = params.distDir ?? path.join(process.cwd(), "dist");
+  const repoRoot = params.cwd ?? params.repoRoot ?? process.cwd();
+  const distDir = params.distDir ?? path.join(repoRoot, "dist");
   if (!fs.existsSync(distDir)) {
     return { changedFiles: [], distDir, skipped: "missing-dist" };
   }
