@@ -160,6 +160,12 @@ export async function monitorWebhook({
       recordWebhookStatus(runtime, accountId, path, res.statusCode);
     });
 
+    const requestPath = (req.url ?? "").split("?", 1)[0] ?? "";
+    if (requestPath !== path) {
+      respondText(res, 404, "Not Found");
+      return;
+    }
+
     const rateLimitKey = `${accountId}:${path}:${req.socket.remoteAddress ?? "unknown"}`;
     if (
       !applyBasicWebhookRequestGuards({
