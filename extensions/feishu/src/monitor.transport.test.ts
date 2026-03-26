@@ -181,6 +181,41 @@ describe("monitorWebhook", () => {
     await server.stop();
   });
 
+  it("does not treat //host/path request targets as matching the configured webhook path", async () => {
+    const accountId = "account-path-network-reference";
+    const port = await getFreePort();
+    const path = "/expected-feishu-hook";
+    const encryptKey = "encrypt_test"; // pragma: allowlist secret
+
+    const invokeMock = vi.fn(async () => ({ ok: true }));
+    const server = await startWebhookServer({
+      accountId,
+      port,
+      path,
+      encryptKey,
+      eventDispatcherInvoke: invokeMock,
+    });
+
+    const payload = { type: "event_callback", event: { foo: "bar" } };
+    const headers = buildSignedHeaders({ payload, encryptKey });
+
+    const response = await fetch(`http://127.0.0.1:${port}//evil${path}?source=test`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        connection: "close",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Not Found");
+    expect(invokeMock).not.toHaveBeenCalled();
+
+    await server.stop();
+  });
+
   it("normalizes configured webhook paths before matching incoming requests", async () => {
     const accountId = "account-path-normalized";
     const port = await getFreePort();
