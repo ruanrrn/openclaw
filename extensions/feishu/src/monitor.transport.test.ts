@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import net from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEnv } from "../runtime-api.js";
 import { clearFeishuWebhookRateLimitStateForTest, httpServers } from "./monitor.state.js";
@@ -85,6 +86,22 @@ async function startWebhookServer(params: {
   };
 }
 
+async function sendRawHttpRequest(params: { port: number; request: string }): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: "127.0.0.1", port: params.port }, () => {
+      socket.write(params.request);
+    });
+
+    let response = "";
+    socket.setEncoding("utf8");
+    socket.on("data", (chunk) => {
+      response += chunk;
+    });
+    socket.on("end", () => resolve(response));
+    socket.on("error", reject);
+  });
+}
+
 afterEach(() => {
   clearFeishuWebhookRateLimitStateForTest();
   for (const server of httpServers.values()) {
@@ -160,6 +177,72 @@ describe("monitorWebhook", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
     expect(invokeMock).toHaveBeenCalledTimes(1);
+
+    await server.stop();
+  });
+
+  it("normalizes configured webhook paths before matching incoming requests", async () => {
+    const accountId = "account-path-normalized";
+    const port = await getFreePort();
+    const configuredPath = " expected-feishu-hook/ ";
+    const requestPath = "/expected-feishu-hook";
+    const encryptKey = "encrypt_test"; // pragma: allowlist secret
+
+    const invokeMock = vi.fn(async () => ({ ok: true }));
+    const server = await startWebhookServer({
+      accountId,
+      port,
+      path: configuredPath,
+      encryptKey,
+      eventDispatcherInvoke: invokeMock,
+    });
+
+    const payload = { type: "event_callback", event: { foo: "bar" } };
+    const headers = buildSignedHeaders({ payload, encryptKey });
+
+    const response = await fetch(`http://127.0.0.1:${port}${requestPath}?source=test`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        connection: "close",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+
+    await server.stop();
+  });
+
+  it("returns 400 instead of throwing on malformed absolute-form request targets", async () => {
+    const accountId = "account-path-malformed";
+    const port = await getFreePort();
+    const encryptKey = "encrypt_test"; // pragma: allowlist secret
+
+    const invokeMock = vi.fn(async () => ({ ok: true }));
+    const server = await startWebhookServer({
+      accountId,
+      port,
+      path: "/expected-feishu-hook",
+      encryptKey,
+      eventDispatcherInvoke: invokeMock,
+    });
+
+    const response = await sendRawHttpRequest({
+      port,
+      request:
+        "POST http://[::1 HTTP/1.1\r\n" +
+        `Host: 127.0.0.1:${port}\r\n` +
+        "Connection: close\r\n" +
+        "Content-Length: 0\r\n\r\n",
+    });
+
+    expect(response).toContain("HTTP/1.1 400 Bad Request");
+    expect(response).toContain("Bad Request");
+    expect(invokeMock).not.toHaveBeenCalled();
 
     await server.stop();
   });

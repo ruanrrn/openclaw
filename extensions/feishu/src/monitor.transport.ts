@@ -3,6 +3,7 @@ import * as http from "node:http";
 import * as Lark from "@larksuiteoapi/node-sdk";
 import { waitForAbortableDelay } from "./async.js";
 import { createFeishuWSClient } from "./client.js";
+import { normalizeWebhookPath } from "openclaw/plugin-sdk/webhook-path";
 import {
   applyBasicWebhookRequestGuards,
   type RuntimeEnv,
@@ -85,6 +86,14 @@ function respondText(res: http.ServerResponse, statusCode: number, body: string)
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.end(body);
+}
+
+function getWebhookRequestPath(req: http.IncomingMessage): string | null {
+  try {
+    return normalizeWebhookPath(new URL(req.url ?? "/", "http://localhost").pathname);
+  } catch {
+    return null;
+  }
 }
 
 function getFeishuWsReconnectDelayMs(attempt: number): number {
@@ -226,7 +235,7 @@ export async function monitorWebhook({
   }
 
   const port = account.config.webhookPort ?? 3000;
-  const path = account.config.webhookPath ?? "/feishu/events";
+  const path = normalizeWebhookPath(account.config.webhookPath ?? "/feishu/events");
   const host = account.config.webhookHost ?? "127.0.0.1";
 
   log(`feishu[${accountId}]: starting Webhook server on ${host}:${port}, path ${path}...`);
@@ -238,7 +247,11 @@ export async function monitorWebhook({
       recordWebhookStatus(runtime, accountId, path, res.statusCode);
     });
 
-    const requestPath = (req.url ?? "").split("?", 1)[0] ?? "";
+    const requestPath = getWebhookRequestPath(req);
+    if (!requestPath) {
+      respondText(res, 400, "Bad Request");
+      return;
+    }
     if (requestPath !== path) {
       respondText(res, 404, "Not Found");
       return;
