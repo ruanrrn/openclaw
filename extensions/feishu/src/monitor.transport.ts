@@ -89,11 +89,16 @@ function respondText(res: http.ServerResponse, statusCode: number, body: string)
 }
 
 function getWebhookRequestPath(req: http.IncomingMessage): string | null {
-  try {
-    return normalizeWebhookPath(new URL(req.url ?? "/", "http://localhost").pathname);
-  } catch {
+  const rawUrl = req.url ?? "/";
+
+  // Only accept origin-form request targets (`/path?query`).
+  // This avoids treating `//evil/path` as a network-path reference when using `new URL()`.
+  if (!rawUrl.startsWith("/")) {
     return null;
   }
+
+  const pathname = rawUrl.split("?", 1)[0] ?? "/";
+  return normalizeWebhookPath(pathname);
 }
 
 function getFeishuWsReconnectDelayMs(attempt: number): number {
